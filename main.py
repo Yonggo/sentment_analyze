@@ -91,16 +91,13 @@ def get_device():
 
 def training():
     print("Loading data...")
-    with open("data/de_train.ft.txt", "r", encoding="utf8") as file:
+    with open("data/example.ft.txt", "r", encoding="utf8") as file:
         train_file = file.readlines()
-    with open("data/de_test.ft.txt", "r", encoding="utf8") as file:
+    with open("data/example.ft.txt", "r", encoding="utf8") as file:
         test_file = file.readlines()
-
     print("Finishing to load!")
-    print("Starting preprocess...")
-    train_file = train_file.readlines()
-    test_file = test_file.readlines()
 
+    print("Starting preprocess...")
     train_file = [x for x in train_file[:num_train]]
     test_file = [x for x in test_file[:num_test]]
 
