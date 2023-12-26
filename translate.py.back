@@ -1,0 +1,63 @@
+import translators as ts
+from tqdm import tqdm
+import argparse
+
+parser = argparse.ArgumentParser(description='Train for review sentiment analyzing model')
+
+parser.add_argument('-data_dir', default="data/train", help='training data directory')
+parser.add_argument('-data_name', default="train.ft.txt", help='training data file name')
+opt = parser.parse_args()
+
+writting_intervall = 100
+split_size = 2
+
+if __name__ == '__main__':
+    path = opt.data_dir + "/"  # "data/train/"
+    file_name = opt.data_name  # "1_train.ft.txt"
+
+    path = path.replace("//", "/")
+
+    with open(path+file_name, "r", encoding="utf8") as file:
+        sentences = file.readlines()
+
+    file = open(path+"de_"+file_name, "w", encoding="utf8")
+    file.write("")
+    file.close()
+
+    translated_sentences = []
+    temp_sentences = []
+    count = 0
+    for sent in tqdm(sentences, desc="Translating "+path+file_name):
+        temp_sent = sent.split(" ", 1)
+        label = temp_sent[0]
+        text = temp_sent[1]
+        try:
+            translated = ts.translate_text(query_text=text, from_language="en", to_language="de")
+            translated_sentences.append(label + " " + translated)
+            count += 1
+
+            if count >= writting_intervall:
+                with open(path + "de_" + file_name, "a", encoding="utf8") as file:
+                    for t_sent in translated_sentences:
+                        file.write(t_sent + "\n")
+                translated_sentences.clear()
+                count = 0
+        except:
+            pass
+        """
+        temp_sentences.append(sent)
+        if len(temp_sentences) == split_size:
+            temp_text = "".join(temp_sentences)
+            try:
+                translated = ts.translate_text(query_text=temp_text, from_language="en", to_language="de")
+                translated_sentences += translated.split("\n")
+                with open(path + "de_" + file_name, "a", encoding="utf8") as file:
+                    for t_sent in translated_sentences:
+                        file.write(t_sent + "\n")
+            except AttributeError:
+                pass
+            temp_sentences.clear()
+            translated_sentences.clear()
+        """
+
+    print("Translating is done")
