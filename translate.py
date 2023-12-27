@@ -66,8 +66,23 @@ if __name__ == '__main__':
             while check_internet_connection() is not True:
                 print("[Attention] Internet is not available now, waiting for connection...", end="\r")
                 time.sleep(60*5)
-            translated = ts.translate_text(query_text=text, from_language="en", to_language="de")
-            labeled_translated_text = label + " " + translated + "\n"
+
+            while len(text) > 1000:
+                text = text.split(".")[:-1]
+                text = ".".join(text)
+
+            translated = ""
+            for i in range(3):
+                try:
+                    translated = ts.translate_text(query_text=text, from_language="en", to_language="de")
+                    break
+                except Exception as err:
+                    print("{}/{} [Error] Translation failed: {}".format(i, 3, err.message))
+                    time.sleep(5)
+            if len(translated) == 0:
+                continue
+
+            labeled_translated_text = label + " " + translated.strip() + "\n"
             if len(already_translated_sentences) > 0:
                 if labeled_translated_text in already_translated_sentences:
                     continue
@@ -81,7 +96,6 @@ if __name__ == '__main__':
                 count = 0
         except:
             failed_sentences.append(sent)
-            pass
 
     if len(translated_sentences) > 0:
         with open(translated_data_path, "a", encoding="utf8") as file:
@@ -91,6 +105,7 @@ if __name__ == '__main__':
     print("Translating is done")
     print("==========================================")
     print("Translating failed sentences: {}".format(len(failed_sentences)))
-    with open(path + "failed_" + file_name, "w", encoding="utf8") as file:
-        for sent in failed_sentences:
-            file.write(sent)
+    if len(failed_sentences) > 0:
+        with open(path + "failed_" + file_name, "w", encoding="utf8") as file:
+            for sent in failed_sentences:
+                file.write(sent)
