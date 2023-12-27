@@ -293,8 +293,6 @@ def preprocess(data_path, batch_size):
     print("Finishing to load!")
 
     print("Starting preprocess...")
-    test_file = [x for x in test_file[:num_test]]
-
     # Extracting labels from sentences.
     test_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in test_file]
     test_sentences = [x.split(' ', 1)[1].strip() for x in test_file]
