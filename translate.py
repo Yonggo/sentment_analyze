@@ -70,6 +70,8 @@ if __name__ == '__main__':
             while len(text) > 1000:
                 text = text.split(".")[:-1]
                 text = ".".join(text)
+                if len(text) == 0:
+                    text = temp_sent[1][:1000]
 
             translated = ""
             for i in range(3):
@@ -80,9 +82,10 @@ if __name__ == '__main__':
                     print("{}/{} [Error] Translation failed: {}".format(i, 3, err.message))
                     time.sleep(5)
             if len(translated) == 0:
+                print(sent)
                 continue
 
-            labeled_translated_text = label + " " + translated.strip() + "\n"
+            labeled_translated_text = label + " " + translated.strip()
             if len(already_translated_sentences) > 0:
                 if labeled_translated_text in already_translated_sentences:
                     continue
@@ -91,7 +94,7 @@ if __name__ == '__main__':
             if count >= writting_intervall:
                 with open(translated_data_path, "a", encoding="utf8") as file:
                     for t_sent in translated_sentences:
-                        file.write(t_sent)
+                        file.write(t_sent + "\n")
                 translated_sentences.clear()
                 count = 0
         except:
@@ -104,6 +107,7 @@ if __name__ == '__main__':
 
     print("Translating is done")
     print("==========================================")
+    print("Translation stored: {}".format(translated_data_path))
     print("Translating failed sentences: {}".format(len(failed_sentences)))
     if len(failed_sentences) > 0:
         with open(path + "failed_" + file_name, "w", encoding="utf8") as file:
