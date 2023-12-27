@@ -290,7 +290,6 @@ def preprocess(data_path, batch_size):
     print("Loading data...")
     with open(data_path, "r", encoding="utf8") as file:
         test_file = file.readlines()
-    print("Finishing to load!")
 
     print("Starting preprocess...")
     # Extracting labels from sentences.
