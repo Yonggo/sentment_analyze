@@ -101,12 +101,12 @@ def training():
     train_file = [x for x in train_file[:num_train]]
     test_file = [x for x in test_file[:num_test]]
 
-    # Extracting labels from sentences
-    train_labels = [0 if x.split(' ')[0] == '__label__1' else 1 for x in train_file]
-    train_sentences = [x.split(' ', 1)[1][:-1] for x in train_file]
+    # Extracting labels from sentences.
+    train_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in train_file]
+    train_sentences = [x.split(' ', 1)[1].strip() for x in train_file]
 
-    test_labels = [0 if x.split(' ')[0] == '__label__1' else 1 for x in test_file]
-    test_sentences = [x.split(' ', 1)[1][:-1] for x in test_file]
+    test_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in test_file]
+    test_sentences = [x.split(' ', 1)[1].strip() for x in test_file]
 
     # Some simple cleaning of data
     for i in range(len(train_sentences)):
