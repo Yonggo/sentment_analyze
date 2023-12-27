@@ -10,11 +10,11 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader
 from SentimentNet import *
 from tools import *
-nltk.download('punkt')
+#nltk.download('punkt')
 
 parser = argparse.ArgumentParser(description='Train for review sentiment analyzing model')
-parser.add_argument('-train', type=bool, help='mode')
-parser.add_argument('-pred', type=bool, help='mode')
+parser.add_argument('-train', default=False, type=bool, help='mode')
+parser.add_argument('-pred', default=False, type=bool, help='mode')
 parser.add_argument('-model_name', required=True, help='Model name followed by device type')
 parser.add_argument('-train_path', default="", help='training data path')
 parser.add_argument('-test_path', default="", help='testing data path')
@@ -37,7 +37,7 @@ drop_prob = 0.1
 # torch.cuda.is_available() checks and returns a Boolean True if a GPU is available, else it'll return False
 is_cuda = torch.cuda.is_available()
 device_type = "gpu" if is_cuda else "cpu"
-model_path = opt.model_name + device_type + ".pt"
+model_path = opt.model_name + "_" + device_type + ".pt"
 
 # Defining a function that either shortens sentences or pads sentences with 0 to a fixed length
 def pad_input(sentences, seq_len):
@@ -275,7 +275,7 @@ def training(train_data_path, test_data_path):
                       "Progress: {:.1f}% |".format(progress),
                       "Loss: {:.6f} |".format(loss.item()),
                       "Val Loss: {:.6f} |".format(val_losses_mean),
-                      "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)))
+                      "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
 
                 if val_losses_mean <= valid_loss_min:
                     torch.save({
@@ -297,7 +297,7 @@ def training(train_data_path, test_data_path):
                         'val_loss': val_losses_mean,
                     }, model_path)
                     print('Validation loss decreased ({:.6f} --> {:.6f}). Saving model ...'
-                          .format(valid_loss_min, np.mean(val_losses)))
+                          .format(valid_loss_min, np.mean(val_losses)), end="\r")
                     valid_loss_min = val_losses_mean
 
     # Loading the best model
@@ -364,7 +364,7 @@ if __name__ == '__main__':
     if opt.pred:
         pred_path = opt.pred_path
         predict(pred_path, model_path)
-    elif opt.tran:
+    elif opt.train:
         train_path = opt.train_path
         test_path = opt.test_path
         training(train_path, test_path)
