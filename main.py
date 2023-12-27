@@ -22,11 +22,12 @@ parser.add_argument('-pred_path', default="", help='prediction data path')
 opt = parser.parse_args()
 
 seq_len = 200  # The length that the sentences will be padded/shortened to
-num_train = 1500000  # We're training on the first 800,000 reviews in the dataset
-num_test = 200000  # Using 200,000 reviews from test set
+num_train = 300000  # We're training on the first 800,000 reviews in the dataset
+num_test = 20000  # Using 200,000 reviews from test set
 batch_size = 500
 learning_rate = 0.0005
 epochs = 10
+print_every = 1
 
 output_size = 1
 embedding_dim = 800
@@ -97,45 +98,6 @@ def get_device():
         print("GPU not available, CPU using")
 
     return device
-
-
-def preprocess(data_path):
-    print("Loading data...")
-    with open(data_path, "r", encoding="utf8") as file:
-        test_file = file.readlines()
-    print("Finishing to load!")
-
-    print("Starting preprocess...")
-    test_file = [x for x in test_file[:num_test]]
-
-    # Extracting labels from sentences.
-    test_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in test_file]
-    test_sentences = [x.split(' ', 1)[1].strip() for x in test_file]
-
-    # Some simple cleaning of data
-    for i in range(len(test_sentences)):
-        test_sentences[i] = re.sub('\d', '0', test_sentences[i])
-
-    # Modify URLs to <url>
-    for i in range(len(test_sentences)):
-        if ('www.' in test_sentences[i] or 'http:' in test_sentences[i] or 'https:' in test_sentences[i] or '.com' in
-                test_sentences[i]):
-            test_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[i])
-
-    word2idx = load_dictionary()
-    for i, t_sentence in enumerate(test_sentences):
-        # For test sentences, we have to tokenize the sentences as well
-        test_sentences[i] = [word2idx[word] if word in word2idx else 0 for word in nltk.word_tokenize(t_sentence)]
-
-    test_sentences = pad_input(test_sentences, seq_len)
-
-    # Converting our labels into numpy arrays
-    test_labels = np.array(test_labels)
-    # Converting into tensor-dataset
-    test_data = TensorDataset(torch.from_numpy(test_sentences), torch.from_numpy(test_labels))
-    test_loader = DataLoader(test_data, shuffle=True, batch_size=batch_size)
-
-    return test_loader
 
 
 def training(train_data_path, test_data_path):
@@ -235,7 +197,6 @@ def training(train_data_path, test_data_path):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     counter = 0
-    print_every = 100
     clip = 5
     valid_loss_min = np.Inf
 
@@ -325,7 +286,46 @@ def training(train_data_path, test_data_path):
     print("Test accuracy: {:.3f}%".format(test_acc * 100))
 
 
-def predict(data_path, model_path):
+def preprocess(data_path, batch_size):
+    print("Loading data...")
+    with open(data_path, "r", encoding="utf8") as file:
+        test_file = file.readlines()
+    print("Finishing to load!")
+
+    print("Starting preprocess...")
+    test_file = [x for x in test_file[:num_test]]
+
+    # Extracting labels from sentences.
+    test_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in test_file]
+    test_sentences = [x.split(' ', 1)[1].strip() for x in test_file]
+
+    # Some simple cleaning of data
+    for i in range(len(test_sentences)):
+        test_sentences[i] = re.sub('\d', '0', test_sentences[i])
+
+    # Modify URLs to <url>
+    for i in range(len(test_sentences)):
+        if ('www.' in test_sentences[i] or 'http:' in test_sentences[i] or 'https:' in test_sentences[i] or '.com' in
+                test_sentences[i]):
+            test_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[i])
+
+    word2idx = load_dictionary()
+    for i, t_sentence in enumerate(test_sentences):
+        # For test sentences, we have to tokenize the sentences as well
+        test_sentences[i] = [word2idx[word] if word in word2idx else 0 for word in nltk.word_tokenize(t_sentence)]
+
+    test_sentences = pad_input(test_sentences, seq_len)
+
+    # Converting our labels into numpy arrays
+    test_labels = np.array(test_labels)
+    # Converting into tensor-dataset
+    test_data = TensorDataset(torch.from_numpy(test_sentences), torch.from_numpy(test_labels))
+    test_loader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
+
+    return test_loader
+
+
+def predict(data_path, model_path, batch_size=10):
     checkpoint = torch.load(model_path)
     parameters = checkpoint['parameters']
     vocab_size = parameters['vocab_size']
@@ -334,9 +334,8 @@ def predict(data_path, model_path):
     hidden_dim = parameters['hidden_dim']
     n_layers = parameters['n_layers']
     drop_prob = parameters['drop_prob']
-    batch_size = parameters['batch_size']
 
-    data_loader = preprocess(data_path)
+    data_loader = preprocess(data_path, batch_size)
 
     device = get_device()
 
@@ -346,6 +345,8 @@ def predict(data_path, model_path):
     model.eval()
     h = model.init_hidden(batch_size, device)
     num_correct = 0
+    counter = 0
+    start_time = time.perf_counter()
     for inputs, labels in data_loader:
         h = tuple([each.data for each in h])
         inputs, labels = inputs.to(device), labels.to(device)
@@ -355,15 +356,26 @@ def predict(data_path, model_path):
         correct = np.squeeze(correct_tensor.cpu().numpy())
         num_correct += np.sum(correct)
 
-    test_acc = num_correct / len(data_loader.dataset)
-    print("Test accuracy: {:.3f}%".format(test_acc * 100))
+        counter += len(inputs)
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
+        progress = counter / len(data_loader.dataset) * 100
+        current_acc = num_correct / len(data_loader.dataset) * 100
+        print("Progress: {:.1f}% |".format(progress),
+              "Current accuracy: {:.2f}% |".format(current_acc),
+              "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
+
+    conclusion_acc = num_correct / len(data_loader.dataset)
+    print("")
+    print("==============================================")
+    print("Accuracy: {:.2f}%".format(conclusion_acc * 100))
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     if opt.pred:
         pred_path = opt.pred_path
-        predict(pred_path, model_path)
+        predict(pred_path, model_path, 20)
     elif opt.train:
         train_path = opt.train_path
         test_path = opt.test_path

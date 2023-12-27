@@ -13,11 +13,11 @@ def calc_time_to_complete(elapsed_time, current_progress):
     y_t = int(60 * (int(y_t[:2]) / 100)) if len(y_t) > 1 else int(60 * (int(y_t[:1]) / 10))
 
     if time_kind == "m":
-        str_rest_time = "{}m {}s".format(x_t, y_t)
+        str_rest_time = "{}m {}s ".format(x_t, y_t)
     elif time_kind == "h":
-        str_rest_time = "{}h {}m".format(x_t, y_t)
+        str_rest_time = "{}h {}m ".format(x_t, y_t)
     else:
-        str_rest_time = "{}s".format(x_t)
+        str_rest_time = "{}s ".format(x_t)
 
     return str_rest_time
 
