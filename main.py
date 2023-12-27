@@ -1,3 +1,4 @@
+import argparse
 import bz2
 import pickle
 import time
@@ -10,6 +11,15 @@ from torch.utils.data import TensorDataset, DataLoader
 from SentimentNet import *
 from tools import *
 nltk.download('punkt')
+
+parser = argparse.ArgumentParser(description='Train for review sentiment analyzing model')
+parser.add_argument('-train', type=bool, help='mode')
+parser.add_argument('-pred', type=bool, help='mode')
+parser.add_argument('-model_name', required=True, help='Model name followed by device type')
+parser.add_argument('-train_path', default="", help='training data path')
+parser.add_argument('-test_path', default="", help='testing data path')
+parser.add_argument('-pred_path', default="", help='prediction data path')
+opt = parser.parse_args()
 
 seq_len = 200  # The length that the sentences will be padded/shortened to
 num_train = 1500000  # We're training on the first 800,000 reviews in the dataset
@@ -27,7 +37,7 @@ drop_prob = 0.1
 # torch.cuda.is_available() checks and returns a Boolean True if a GPU is available, else it'll return False
 is_cuda = torch.cuda.is_available()
 device_type = "gpu" if is_cuda else "cpu"
-model_path = "model_" + device_type + ".pt"
+model_path = opt.model_name + device_type + ".pt"
 
 # Defining a function that either shortens sentences or pads sentences with 0 to a fixed length
 def pad_input(sentences, seq_len):
@@ -89,11 +99,50 @@ def get_device():
     return device
 
 
-def training():
+def preprocess(data_path):
     print("Loading data...")
-    with open("data/example.ft.txt", "r", encoding="utf8") as file:
+    with open(data_path, "r", encoding="utf8") as file:
+        test_file = file.readlines()
+    print("Finishing to load!")
+
+    print("Starting preprocess...")
+    test_file = [x for x in test_file[:num_test]]
+
+    # Extracting labels from sentences.
+    test_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in test_file]
+    test_sentences = [x.split(' ', 1)[1].strip() for x in test_file]
+
+    # Some simple cleaning of data
+    for i in range(len(test_sentences)):
+        test_sentences[i] = re.sub('\d', '0', test_sentences[i])
+
+    # Modify URLs to <url>
+    for i in range(len(test_sentences)):
+        if ('www.' in test_sentences[i] or 'http:' in test_sentences[i] or 'https:' in test_sentences[i] or '.com' in
+                test_sentences[i]):
+            test_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[i])
+
+    word2idx = load_dictionary()
+    for i, t_sentence in enumerate(test_sentences):
+        # For test sentences, we have to tokenize the sentences as well
+        test_sentences[i] = [word2idx[word] if word in word2idx else 0 for word in nltk.word_tokenize(t_sentence)]
+
+    test_sentences = pad_input(test_sentences, seq_len)
+
+    # Converting our labels into numpy arrays
+    test_labels = np.array(test_labels)
+    # Converting into tensor-dataset
+    test_data = TensorDataset(torch.from_numpy(test_sentences), torch.from_numpy(test_labels))
+    test_loader = DataLoader(test_data, shuffle=True, batch_size=batch_size)
+
+    return test_loader
+
+
+def training(train_data_path, test_data_path):
+    print("Loading data...")
+    with open(train_data_path, "r", encoding="utf8") as file:
         train_file = file.readlines()
-    with open("data/example.ft.txt", "r", encoding="utf8") as file:
+    with open(test_data_path, "r", encoding="utf8") as file:
         test_file = file.readlines()
     print("Finishing to load!")
 
@@ -276,7 +325,7 @@ def training():
     print("Test accuracy: {:.3f}%".format(test_acc * 100))
 
 
-def predict(sentence):
+def predict(data_path, model_path):
     checkpoint = torch.load(model_path)
     parameters = checkpoint['parameters']
     vocab_size = parameters['vocab_size']
@@ -285,49 +334,37 @@ def predict(sentence):
     hidden_dim = parameters['hidden_dim']
     n_layers = parameters['n_layers']
     drop_prob = parameters['drop_prob']
+    batch_size = parameters['batch_size']
 
-    word2idx = load_dictionary()
-    words = []
-    for word in nltk.word_tokenize(sentence):
-        words.append(word)
-    words = [word2idx[word] if word in word2idx else 0 for word in words]
+    data_loader = preprocess(data_path)
 
     device = get_device()
-
-    # padding
-    features = np.zeros((seq_len), dtype=int)
-    features[-len(words):] = np.array(words)[:seq_len]
-
-    input_data = torch.from_numpy(features)
-    input_data = input_data.to(device)
 
     model = SentimentNet(vocab_size, output_size, embedding_dim, hidden_dim, n_layers, drop_prob)
     model.to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    h = model.init_hidden(1, device)
-    output, h = model(input_data, h)
-    pred = torch.round(output.squeeze())  # Rounds the output to 0/1
+    h = model.init_hidden(batch_size, device)
+    num_correct = 0
+    for inputs, labels in data_loader:
+        h = tuple([each.data for each in h])
+        inputs, labels = inputs.to(device), labels.to(device)
+        output, h = model(inputs, h)
+        pred = torch.round(output.squeeze())  # Rounds the output to 0/1
+        correct_tensor = pred.eq(labels.float().view_as(pred))
+        correct = np.squeeze(correct_tensor.cpu().numpy())
+        num_correct += np.sum(correct)
 
-    #result = pred.cpu().detach().numpy().astype(int)
-    #result = result[-len(words):]
-    #print(result)
-    #print(len(words))
-    #positive_count = np.sum(result)
-    #print(positive_count)
-
-    result = pred[-1].cpu().detach().numpy().astype(int)
-    #print(result)
-
-    #return "Negative!" if positive_count <= len(words)/2 else "Positive!"
-    return "Negative!" if result == 0 else "Positive!"
+    test_acc = num_correct / len(data_loader.dataset)
+    print("Test accuracy: {:.3f}%".format(test_acc * 100))
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    if os.path.exists(model_path):
-        sentence = "it was really good, i can just say, buy it"
-        print(predict(sentence))
-        #create_dictionary()
-    else:
-        training()
+    if opt.pred:
+        pred_path = opt.pred_path
+        predict(pred_path, model_path)
+    elif opt.tran:
+        train_path = opt.train_path
+        test_path = opt.test_path
+        training(train_path, test_path)
