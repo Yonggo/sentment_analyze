@@ -1,4 +1,5 @@
 import time
+from random import randint
 
 import translators as ts
 from tqdm import tqdm
@@ -8,11 +9,12 @@ import socket
 
 
 def check_internet_connection():
-    remote_server = "www.bing.com"
+    remote_servers = ["www.bing.com", "www.google.com", "wikipedia.org"]
     port = 80
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(10)
     try:
+        remote_server = remote_servers[randint(0, len(remote_servers)-1)]
         sock.connect((remote_server, port))
         return True
     except socket.error:
