@@ -66,6 +66,7 @@ if __name__ == '__main__':
         text = temp_sent[1]
         try:
             while check_internet_connection() is not True:
+                print("")
                 print("[Attention] Internet is not available now, waiting for connection...")
                 time.sleep(60*1)
 
