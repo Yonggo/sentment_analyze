@@ -20,14 +20,20 @@ parser.add_argument('-train_path', default="", help='training data path')
 parser.add_argument('-test_path', default="", help='testing data path')
 parser.add_argument('-pred_path', default="", help='prediction data path')
 parser.add_argument('-dic_name', default="dictionary.pkl", help='dictionary name to be stored or used')
+parser.add_argument('-num_train', default=100000, help='number of sentences used to train')
+parser.add_argument('-num_test', default=10000, help='number of sentences used to test & validation in 50 to 50 rate')
+parser.add_argument('-lr', default=0.0005, help='learning rate')
+parser.add_argument('-epochs', default=10, help='number of epochs')
+parser.add_argument('-batch', default=1000, help='number of batch')
+parser.add_argument('-seq_len', default=200, help='sequence length or input size')
 opt = parser.parse_args()
 
-seq_len = 200  # The length that the sentences will be padded/shortened to
-num_train = 100000#1000000  # We're training on the first 800,000 reviews in the dataset
-num_test = 10000#200000  # Using 200,000 reviews from test set
-batch_size = 1000
-learning_rate = 0.0005
-epochs = 10
+seq_len = opt.seq_len  # The length that the sentences will be padded/shortened to
+num_train = opt.num_train  # We're training on the first 800,000 reviews in the dataset
+num_test = opt.num_test  # Using 200,000 reviews from test set
+batch_size = opt.batch
+learning_rate = opt.lr
+epochs = opt.epochs
 print_every = 1
 
 output_size = 1
