@@ -19,12 +19,13 @@ parser.add_argument('-model_name', required=True, help='Model name followed by d
 parser.add_argument('-train_path', default="", help='training data path')
 parser.add_argument('-test_path', default="", help='testing data path')
 parser.add_argument('-pred_path', default="", help='prediction data path')
+parser.add_argument('-dic_name', default="dictionary.pkl", help='dictionary name to be stored or used')
 opt = parser.parse_args()
 
 seq_len = 200  # The length that the sentences will be padded/shortened to
-num_train = 2000000  # We're training on the first 800,000 reviews in the dataset
-num_test = 40000  # Using 200,000 reviews from test set
-batch_size = 500
+num_train = 100000#1000000  # We're training on the first 800,000 reviews in the dataset
+num_test = 10000#200000  # Using 200,000 reviews from test set
+batch_size = 1000
 learning_rate = 0.0005
 epochs = 10
 print_every = 1
@@ -52,7 +53,7 @@ def pad_input(sentences, seq_len):
 def save_dictionary(dict):
     print("Saving dictionary...")
     # create a binary pickle file
-    f = open("dictionary.pkl", "wb")
+    f = open(opt.dic_name, "wb")
 
     # write the python object (dict) to pickle file
     pickle.dump(dict, f)
@@ -61,10 +62,10 @@ def save_dictionary(dict):
     f.close()
 
 
-def load_dictionary(dict_name="dictionary.pkl"):
+def load_dictionary():
     print("Loading dictionary...")
     # open a file, where you stored the pickled data
-    file = open(dict_name, 'rb')
+    file = open(opt.dic_name, 'rb')
 
     # dump information to that file
     dict = pickle.load(file)
@@ -138,7 +139,8 @@ def training(train_data_path, test_data_path):
             test_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[i])
 
     words = Counter()  # Dictionary that will map a word to the number of times it appeared in all the training sentences
-    for i, sentence in progressBar(train_sentences, "Tokenizing", "complete", length=50):
+    start = time.time()
+    for i, sentence in progressBar(train_sentences, start, "Tokenizing", "complete", length=50):
         # The sentences will be stored as a list of words/tokens
         train_sentences[i] = []
         for word in nltk.word_tokenize(sentence):  # Tokenizing the words
@@ -233,7 +235,7 @@ def training(train_data_path, test_data_path):
                 elapsed_time = end_time - start_time
                 progress = counter * batch_size / (epochs * num_train) * 100
                 print("Epoch: {}/{} |".format(i + 1, epochs),
-                      "Progress: {:.1f}% |".format(progress),
+                      "Progress: {:.2f}% |".format(progress),
                       "Loss: {:.6f} |".format(loss.item()),
                       "Val Loss: {:.6f} |".format(val_losses_mean),
                       "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
@@ -281,9 +283,10 @@ def training(train_data_path, test_data_path):
         correct = np.squeeze(correct_tensor.cpu().numpy())
         num_correct += np.sum(correct)
 
-    print("Test loss: {:.3f}".format(np.mean(test_losses)))
+    print("")
+    print("Test loss: {:.6f}".format(np.mean(test_losses)))
     test_acc = num_correct / len(test_loader.dataset)
-    print("Test accuracy: {:.3f}%".format(test_acc * 100))
+    print("Test accuracy: {:.2f}%".format(test_acc * 100))
 
 
 def preprocess(data_path, batch_size):

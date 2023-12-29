@@ -1,3 +1,6 @@
+import time
+
+
 def calc_time_to_complete(elapsed_time, current_progress):
     time_kind = "s"
     rest_time = (100 - current_progress) * (elapsed_time / current_progress)
@@ -22,7 +25,7 @@ def calc_time_to_complete(elapsed_time, current_progress):
     return str_rest_time
 
 
-def progressBar(iterable, prefix = '', suffix = '', decimals = 2, length = 100, fill = '█', printEnd = "\r", frequency = 10):
+def progressBar(iterable, start_time, prefix = '', suffix = '', decimals = 2, length = 100, fill = '█', printEnd = "\r", frequency = 10):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -38,10 +41,15 @@ def progressBar(iterable, prefix = '', suffix = '', decimals = 2, length = 100, 
     # Progress Bar Printing Function
     def printProgressBar (iteration):
         if iteration % frequency == 0:
-            percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+            current_progress = 100 * (iteration / float(total))
+            percent = ("{0:." + str(decimals) + "f}").format(current_progress)
             filledLength = int(length * iteration // total)
             bar = fill * filledLength + '-' * (length - filledLength)
-            print(f'\r  {prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+            if current_progress > 0:
+                restTime = calc_time_to_complete(time.time()-start_time, current_progress)
+            else:
+                restTime = "-"
+            print(f'\r  {prefix} |{bar}| {percent}% {suffix} | {restTime}', end=printEnd)
     # Initial Call
     printProgressBar(0)
     # Update Progress Bar
