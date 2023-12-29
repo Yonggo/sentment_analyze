@@ -239,8 +239,11 @@ def training(train_data_path, test_data_path):
                 val_losses_mean = np.mean(val_losses)
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
-                progress = counter * batch_size / (epochs * num_train) * 100
+                current_step = counter * batch_size
+                total_step = epochs * num_train
+                progress = current_step / total_step * 100
                 print("Epoch: {}/{} |".format(i + 1, epochs),
+                      "{}/{} |".format(current_step, total_step),
                       "Progress: {:.2f}% |".format(progress),
                       "Loss: {:.6f} |".format(loss.item()),
                       "Val Loss: {:.6f} |".format(val_losses_mean),
