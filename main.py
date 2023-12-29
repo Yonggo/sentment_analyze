@@ -22,8 +22,8 @@ parser.add_argument('-pred_path', default="", help='prediction data path')
 opt = parser.parse_args()
 
 seq_len = 200  # The length that the sentences will be padded/shortened to
-num_train = 300000  # We're training on the first 800,000 reviews in the dataset
-num_test = 20000  # Using 200,000 reviews from test set
+num_train = 2000000  # We're training on the first 800,000 reviews in the dataset
+num_test = 40000  # Using 200,000 reviews from test set
 batch_size = 500
 learning_rate = 0.0005
 epochs = 10
@@ -138,7 +138,7 @@ def training(train_data_path, test_data_path):
             test_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[i])
 
     words = Counter()  # Dictionary that will map a word to the number of times it appeared in all the training sentences
-    for i, sentence in progressBar(train_sentences, "Tokenizing", "Complete", length=50):
+    for i, sentence in progressBar(train_sentences, "Tokenizing", "complete", length=50):
         # The sentences will be stored as a list of words/tokens
         train_sentences[i] = []
         for word in nltk.word_tokenize(sentence):  # Tokenizing the words

@@ -22,7 +22,7 @@ def calc_time_to_complete(elapsed_time, current_progress):
     return str_rest_time
 
 
-def progressBar(iterable, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r", frequency = 10):
+def progressBar(iterable, prefix = '', suffix = '', decimals = 2, length = 100, fill = '█', printEnd = "\r", frequency = 10):
     """
     Call in a loop to create terminal progress bar
     @params:
