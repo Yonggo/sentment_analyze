@@ -206,7 +206,8 @@ def training(train_data_path, test_data_path):
 
     counter = 0
     clip = 5
-    valid_loss_min = np.Inf
+    min_val_loss = np.Inf
+    stop_train = False
 
     start_time = time.perf_counter()
     model.train()
@@ -243,17 +244,18 @@ def training(train_data_path, test_data_path):
                 total_step = epochs * num_train
                 progress = current_step / total_step * 100
                 print("Epoch: {}/{} |".format(i + 1, epochs),
-                      "{}/{} |".format(current_step, total_step),
+                      #"{}/{} |".format(current_step, total_step),
                       "Progress: {:.2f}% |".format(progress),
                       "Loss: {:.6f} |".format(loss.item()),
                       "Val Loss: {:.6f} |".format(val_losses_mean),
+                      "min. Val Loss: {:.6f} |".format(min_val_loss),
                       "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
 
-                if val_losses_mean <= valid_loss_min:
+                if val_losses_mean <= min_val_loss:
                     torch.save({
                         'step_info': {'epoch': i,
-                                      'counter': counter,
-                                      'progress': str(progress)+'%'},
+                                      'step': "{}/{}".format(current_step, total_step),
+                                      'progress': "{}%".format(progress)},
                         'parameters': {'batch_size': batch_size,
                                        'num_train': num_train,
                                        'learning_rate': learning_rate,
@@ -269,8 +271,16 @@ def training(train_data_path, test_data_path):
                         'val_loss': val_losses_mean,
                     }, model_path)
                     print('Validation loss decreased ({:.6f} --> {:.6f}). Saving model ...'
-                          .format(valid_loss_min, np.mean(val_losses)), end="\r")
-                    valid_loss_min = val_losses_mean
+                          .format(min_val_loss, np.mean(val_losses)), end="\r")
+                    min_val_loss = val_losses_mean
+                elif val_losses_mean > min_val_loss * 2:
+                    print("")
+                    print("Val Loss is exploded, so going to stop the training")
+                    stop_train = True
+                    break
+        if stop_train:
+            break
+
 
     # Loading the best model
     checkpoint = torch.load(model_path)
@@ -335,6 +345,7 @@ def preprocess(data_path, batch_size):
 
 
 def predict(data_path, model_path, batch_size=10):
+    fetch_model_info(model_path)
     checkpoint = torch.load(model_path)
     parameters = checkpoint['parameters']
     vocab_size = parameters['vocab_size']
@@ -380,6 +391,16 @@ def predict(data_path, model_path, batch_size=10):
     print("Accuracy: {:.2f}%".format(conclusion_acc * 100))
 
 
+def fetch_model_info(model_path):
+    checkpoint = torch.load(model_path)
+    step_info = checkpoint['step_info']
+    val_loss = checkpoint['val_loss']
+    print("================== Model Info ==================")
+    print("step_info: {}".format(step_info))
+    print("val_loss: {}".format(val_loss))
+    print("================================================")
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     if opt.pred:
@@ -389,3 +410,5 @@ if __name__ == '__main__':
         train_path = opt.train_path
         test_path = opt.test_path
         training(train_path, test_path)
+    else:
+        fetch_model_info(model_path)
