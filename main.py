@@ -255,7 +255,7 @@ def training(train_data_path, test_data_path):
                     torch.save({
                         'step_info': {'epoch': i,
                                       'step': "{}/{}".format(current_step, total_step),
-                                      'progress': "{}%".format(progress)},
+                                      'progress': "{:.2f}%".format(progress)},
                         'parameters': {'batch_size': batch_size,
                                        'num_train': num_train,
                                        'learning_rate': learning_rate,
@@ -273,7 +273,7 @@ def training(train_data_path, test_data_path):
                     print('Validation loss decreased ({:.6f} --> {:.6f}). Saving model ...'
                           .format(min_val_loss, np.mean(val_losses)), end="\r")
                     min_val_loss = val_losses_mean
-                elif val_losses_mean > min_val_loss * 2:
+                elif val_losses_mean > min_val_loss * 1.5:
                     print("")
                     print("Val Loss is exploded, so going to stop the training")
                     stop_train = True
