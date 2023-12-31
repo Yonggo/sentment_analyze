@@ -20,8 +20,8 @@ parser.add_argument('-train_path', default="", help='training data path')
 parser.add_argument('-test_path', default="", help='testing data path')
 parser.add_argument('-pred_path', default="", help='prediction data path')
 parser.add_argument('-dic_name', default="dictionary.pkl", help='dictionary name to be stored or used')
-parser.add_argument('-num_train', default=100000, type=int, help='number of sentences used to train')
-parser.add_argument('-num_test', default=10000, type=int, help='number of sentences used to test & validation in 50 to 50 rate')
+parser.add_argument('-train_size', default=100000, type=int, help='number of sentences used to train')
+parser.add_argument('-test_size', default=10000, type=int, help='number of sentences used to test & validation in 50 to 50 rate')
 parser.add_argument('-lr', default=0.0005, type=float, help='learning rate')
 parser.add_argument('-epochs', default=10, type=int, help='number of epochs')
 parser.add_argument('-batch', default=1000, type=int, help='number of batch')
@@ -29,18 +29,18 @@ parser.add_argument('-seq_len', default=200, type=int, help='sequence length or 
 opt = parser.parse_args()
 
 seq_len = opt.seq_len  # The length that the sentences will be padded/shortened to
-num_train = opt.num_train  # We're training on the first 800,000 reviews in the dataset
-num_test = opt.num_test  # Using 200,000 reviews from test set
+train_size = opt.train_size  # We're training on the first 800,000 reviews in the dataset
+test_size = opt.test_size  # Using 200,000 reviews from test set
 batch_size = opt.batch
 learning_rate = opt.lr
 epochs = opt.epochs
-print_every = 1
+evaluate_every = 1
 
 output_size = 1
 embedding_dim = 800
 hidden_dim = 512
-n_layers = 2
-drop_prob = 0.1
+n_layers = 3
+drop_prob = 0.2
 
 # torch.cuda.is_available() checks and returns a Boolean True if a GPU is available, else it'll return False
 is_cuda = torch.cuda.is_available()
@@ -116,8 +116,8 @@ def training(train_data_path, test_data_path):
     print("Finishing to load!")
 
     print("Starting preprocess...")
-    train_file = [x for x in train_file[:num_train]]
-    test_file = [x for x in test_file[:num_test]]
+    train_file = [x for x in train_file[:train_size]]
+    test_file = [x for x in test_file[:test_size]]
 
     # Extracting labels from sentences.
     train_labels = [0 if x.split(' ', 1)[0] == '__label__1' else 1 for x in train_file]
@@ -127,31 +127,31 @@ def training(train_data_path, test_data_path):
     test_sentences = [x.split(' ', 1)[1].strip() for x in test_file]
 
     # Some simple cleaning of data
-    for i in range(len(train_sentences)):
-        train_sentences[i] = re.sub('\d', '0', train_sentences[i])
+    for epoch in range(len(train_sentences)):
+        train_sentences[epoch] = re.sub('\d', '0', train_sentences[epoch])
 
-    for i in range(len(test_sentences)):
-        test_sentences[i] = re.sub('\d', '0', test_sentences[i])
+    for epoch in range(len(test_sentences)):
+        test_sentences[epoch] = re.sub('\d', '0', test_sentences[epoch])
 
     # Modify URLs to <url>
-    for i in range(len(train_sentences)):
-        if ('www.' in train_sentences[i] or 'http:' in train_sentences[i] or 'https:' in train_sentences[i] or '.com'
-                in train_sentences[i]):
-            train_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", train_sentences[i])
+    for epoch in range(len(train_sentences)):
+        if ('www.' in train_sentences[epoch] or 'http:' in train_sentences[epoch] or 'https:' in train_sentences[epoch] or '.com'
+                in train_sentences[epoch]):
+            train_sentences[epoch] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", train_sentences[epoch])
 
-    for i in range(len(test_sentences)):
-        if ('www.' in test_sentences[i] or 'http:' in test_sentences[i] or 'https:' in test_sentences[i] or '.com' in
-                test_sentences[i]):
-            test_sentences[i] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[i])
+    for epoch in range(len(test_sentences)):
+        if ('www.' in test_sentences[epoch] or 'http:' in test_sentences[epoch] or 'https:' in test_sentences[epoch] or '.com' in
+                test_sentences[epoch]):
+            test_sentences[epoch] = re.sub(r"([^ ]+(?<=\.[a-z]{3}))", "<url>", test_sentences[epoch])
 
     words = Counter()  # Dictionary that will map a word to the number of times it appeared in all the training sentences
     start = time.time()
-    for i, sentence in progressBar(train_sentences, start, "Tokenizing", "complete", length=50):
+    for epoch, sentence in progressBar(train_sentences, start, "Tokenizing", "complete", length=50):
         # The sentences will be stored as a list of words/tokens
-        train_sentences[i] = []
+        train_sentences[epoch] = []
         for word in nltk.word_tokenize(sentence):  # Tokenizing the words
             words.update([word])  # Converting all the words to lowercase
-            train_sentences[i].append(word)
+            train_sentences[epoch].append(word)
 
 
     # Removing the words that only appear once
@@ -165,13 +165,13 @@ def training(train_data_path, test_data_path):
     idx2word = {i: o for i, o in enumerate(words)}
     save_dictionary(word2idx)
 
-    for i, sentence in enumerate(train_sentences):
+    for epoch, sentence in enumerate(train_sentences):
         # Looking up the mapping dictionary and assigning the index to the respective words
-        train_sentences[i] = [word2idx[word] if word in word2idx else 0 for word in sentence]
+        train_sentences[epoch] = [word2idx[word] if word in word2idx else 0 for word in sentence]
 
-    for i, sentence in enumerate(test_sentences):
+    for epoch, sentence in enumerate(test_sentences):
         # For test sentences, we have to tokenize the sentences as well
-        test_sentences[i] = [word2idx[word] if word in word2idx else 0 for word in
+        test_sentences[epoch] = [word2idx[word] if word in word2idx else 0 for word in
                              nltk.word_tokenize(sentence)]
 
     train_sentences = pad_input(train_sentences, seq_len)
@@ -211,7 +211,7 @@ def training(train_data_path, test_data_path):
 
     start_time = time.perf_counter()
     model.train()
-    for i in range(epochs):
+    for epoch in range(epochs):
         h = model.init_hidden(batch_size, device)
 
         for inputs, labels in train_loader:
@@ -225,7 +225,7 @@ def training(train_data_path, test_data_path):
             nn.utils.clip_grad_norm_(model.parameters(), clip)
             optimizer.step()
 
-            if counter % print_every == 0:
+            if counter % evaluate_every == 0:
                 val_h = model.init_hidden(batch_size, device)
                 val_losses = []
                 model.eval()
@@ -241,9 +241,9 @@ def training(train_data_path, test_data_path):
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
                 current_step = counter * batch_size
-                total_step = epochs * num_train
+                total_step = epochs * train_size
                 progress = current_step / total_step * 100
-                print("Epoch: {}/{} |".format(i + 1, epochs),
+                print("Epoch: {}/{} |".format(epoch + 1, epochs),
                       #"{}/{} |".format(current_step, total_step),
                       "Progress: {:.2f}% |".format(progress),
                       "Loss: {:.6f} |".format(loss.item()),
@@ -251,13 +251,13 @@ def training(train_data_path, test_data_path):
                       "min. Val Loss: {:.6f} |".format(min_val_loss),
                       "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
 
-                if val_losses_mean <= min_val_loss:
+                if val_losses_mean <= min_val_loss and current_step >= train_size:
                     torch.save({
-                        'step_info': {'epoch': i,
+                        'step_info': {'epoch': epoch + 1,
                                       'step': "{}/{}".format(current_step, total_step),
                                       'progress': "{:.2f}%".format(progress)},
                         'parameters': {'batch_size': batch_size,
-                                       'num_train': num_train,
+                                       'num_train': train_size,
                                        'learning_rate': learning_rate,
                                        'epochs': epochs,
                                        'vocab_size': vocab_size,
@@ -338,8 +338,10 @@ def preprocess(data_path, batch_size):
     # Converting our labels into numpy arrays
     test_labels = np.array(test_labels)
     # Converting into tensor-dataset
+    print("Converting to tensor...")
     test_data = TensorDataset(torch.from_numpy(test_sentences), torch.from_numpy(test_labels))
     test_loader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
+    print("Preprocessing done.")
 
     return test_loader
 

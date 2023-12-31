@@ -3,5 +3,5 @@ python main.py -train=True `
     -test_path="data/test/de_test.ft.txt" `
     -model_name="model" `
     -dic_name="dictionary.pkl" `
-    -num_train=1000000 `
-    -num_test=200000 `
+    -train_size=1000000 `
+    -test_size=200000 `
