@@ -249,7 +249,7 @@ def training(train_data_path, test_data_path):
                       "Loss: {:.6f} |".format(loss.item()),
                       "Val Loss: {:.6f} |".format(val_losses_mean),
                       "min. Val Loss: {:.6f} |".format(min_val_loss),
-                      "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
+                      "Remain. Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
 
                 if val_losses_mean <= min_val_loss and current_step >= train_size:
                     torch.save({
