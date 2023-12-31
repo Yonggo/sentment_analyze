@@ -3,26 +3,26 @@ import time
 
 def calc_time_to_complete(elapsed_time, current_progress):
     time_kind = "s"
-    rest_time = (100 - current_progress) * (elapsed_time / current_progress)
-    if rest_time >= 60:
+    remain_time = (100 - current_progress) * (elapsed_time / current_progress)
+    if remain_time >= 60:
         time_kind = "m"
-        rest_time = rest_time / 60.0
-    if rest_time >= 60:
+        remain_time = remain_time / 60.0
+    if remain_time >= 60:
         time_kind = "h"
-        rest_time = rest_time / 60.0
+        remain_time = remain_time / 60.0
 
-    x_t = str(rest_time).split(".", 1)[0]
-    y_t = str(rest_time).split(".", 1)[1]
+    x_t = str(remain_time).split(".", 1)[0]
+    y_t = str(remain_time).split(".", 1)[1]
     y_t = int(60 * (int(y_t[:2]) / 100)) if len(y_t) > 1 else int(60 * (int(y_t[:1]) / 10))
 
     if time_kind == "m":
-        str_rest_time = "{}m {}s ".format(x_t, y_t)
+        str_remain_time = "{}m {}s ".format(x_t, y_t)
     elif time_kind == "h":
-        str_rest_time = "{}h {}m ".format(x_t, y_t)
+        str_remain_time = "{}h {}m ".format(x_t, y_t)
     else:
-        str_rest_time = "{}s ".format(x_t)
+        str_remain_time = "{}s ".format(x_t)
 
-    return str_rest_time
+    return str_remain_time
 
 
 def progressBar(iterable, start_time, prefix = '', suffix = '', decimals = 2, length = 100, fill = '█', printEnd = "\r", frequency = 10):
