@@ -107,6 +107,25 @@ def get_device():
     return device
 
 
+def is_increasing(val_losses):
+    val_losses = val_losses[-10:]
+    if len(val_losses) < 10:
+        return False
+
+    sum = 0
+    size = len(val_losses) - 1
+    for idx in range(size):
+        a = val_losses[idx]
+        b = val_losses[idx+1]
+        sum += (b - a)
+
+    mean = sum/size
+    if mean > 0:
+        return True
+    else:
+        return False
+
+
 def training(train_data_path, test_data_path):
     print("Loading data...")
     with open(train_data_path, "r", encoding="utf8") as file:
@@ -208,6 +227,7 @@ def training(train_data_path, test_data_path):
     clip = 5
     min_val_loss = np.Inf
     stop_train = False
+    mean_val_losses = []
 
     start_time = time.perf_counter()
     model.train()
@@ -238,6 +258,7 @@ def training(train_data_path, test_data_path):
 
                 model.train()
                 val_losses_mean = np.mean(val_losses)
+                mean_val_losses.append(val_losses_mean)
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
                 current_step = counter * batch_size
@@ -273,9 +294,9 @@ def training(train_data_path, test_data_path):
                     print('Validation loss decreased ({:.6f} --> {:.6f}). Saving model ...'
                           .format(min_val_loss, np.mean(val_losses)), end="\r")
                     min_val_loss = val_losses_mean
-                elif val_losses_mean > min_val_loss * 1.5:
+                elif val_losses_mean > min_val_loss * 1.5 or is_increasing(mean_val_losses):
                     print("")
-                    print("Val Loss is exploded, so going to stop the training")
+                    print("Val Loss is exploding, so going to stop the training")
                     stop_train = True
                     break
         if stop_train:
