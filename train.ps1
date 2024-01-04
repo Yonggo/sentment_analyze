@@ -5,3 +5,4 @@ python main.py -train=True `
     -dic_name="dictionary.pkl" `
     -train_size=1000000 `
     -test_size=200000 `
+    -batch=500

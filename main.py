@@ -24,7 +24,7 @@ parser.add_argument('-train_size', default=100000, type=int, help='number of sen
 parser.add_argument('-test_size', default=10000, type=int, help='number of sentences used to test & validation in 50 to 50 rate')
 parser.add_argument('-lr', default=0.0005, type=float, help='learning rate')
 parser.add_argument('-epochs', default=10, type=int, help='number of epochs')
-parser.add_argument('-batch', default=1000, type=int, help='number of batch')
+parser.add_argument('-batch', default=200, type=int, help='number of batch')
 parser.add_argument('-seq_len', default=200, type=int, help='sequence length or input size')
 opt = parser.parse_args()
 
@@ -248,8 +248,8 @@ def training(train_data_path, test_data_path):
                       "Progress: {:.2f}% |".format(progress),
                       "Loss: {:.6f} |".format(loss.item()),
                       "Val Loss: {:.6f} |".format(val_losses_mean),
-                      "min. Val Loss: {:.6f} |".format(min_val_loss),
-                      "Remain. Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
+                      "min.Val Loss: {:.6f} |".format(min_val_loss),
+                      "Remain Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
 
                 if val_losses_mean <= min_val_loss and current_step >= train_size:
                     torch.save({
