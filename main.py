@@ -294,7 +294,8 @@ def training(train_data_path, test_data_path):
                     print('Validation loss decreased ({:.6f} --> {:.6f}). Saving model ...'
                           .format(min_val_loss, np.mean(val_losses)), end="\r")
                     min_val_loss = val_losses_mean
-                elif val_losses_mean > min_val_loss * 1.5 or is_increasing(mean_val_losses):
+                elif (val_losses_mean > min_val_loss * 1.5
+                      or (val_losses_mean > min_val_loss * 1.25 and is_increasing(mean_val_losses))):
                     print("")
                     print("Val Loss is exploding, so going to stop the training")
                     stop_train = True
