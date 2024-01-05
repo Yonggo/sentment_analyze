@@ -407,7 +407,7 @@ def predict(data_path, model_path, batch_size=10):
         current_acc = num_correct / len(data_loader.dataset) * 100
         print("Progress: {:.1f}% |".format(progress),
               "Current accuracy: {:.2f}% |".format(current_acc),
-              "Rest Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
+              "Remain Time: {}".format(calc_time_to_complete(elapsed_time, progress)), end="\r")
 
     conclusion_acc = num_correct / len(data_loader.dataset)
     print("")
